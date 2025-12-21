@@ -3,6 +3,8 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
+import ClubsDirectory from './pages/ClubsDirectory';
+import ClubProfile from './pages/ClubProfile';
 
 function App() {
   return (
@@ -14,7 +16,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/login" element={<Login />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/clubs" element={<div className="pt-24 text-center">Clubs Directory Coming Soon</div>} />
+          <Route path="/clubs" element={<ClubsDirectory />} />
+          <Route path="/clubs/:id" element={<ClubProfile />} />
         </Routes>
       </div>
     </Router>

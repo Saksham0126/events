@@ -61,6 +61,14 @@ const Home = () => {
         )}
 
       </div>
+
+      {/* FOOTER */}
+      <footer className="mt-20 py-8 text-center border-t border-zinc-900">
+        <p className="text-zinc-600 text-sm font-medium tracking-wide">
+          Made with <span className="text-red-500 animate-pulse">♥</span> by <span className="text-zinc-400 hover:text-white transition-colors cursor-pointer">Saksham</span>
+        </p>
+      </footer>
+
     </div>
   );
 };

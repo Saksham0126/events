@@ -1,21 +1,30 @@
 const jwt = require('jsonwebtoken');
 
-module.exports = function(req, res, next) {
-  // 1. Get token from header
+// 1. Standard Auth (Used for everyone)
+const auth = (req, res, next) => {
   const token = req.header('x-auth-token');
+  if (!token) return res.status(401).json({ msg: 'No token, authorization denied' });
 
-  // 2. Check if no token
-  if (!token) {
-    return res.status(401).json({ msg: 'No token, authorization denied' });
-  }
-
-  // 3. Verify token
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded.user; // Add the user info to the request object
-    next(); // Move to the next step (the route handler)
+    req.user = decoded.user;
+    next();
   } catch (err) {
     res.status(401).json({ msg: 'Token is not valid' });
   }
 };
+
+// 2. Super Admin Check (Used for sensitive actions)
+const checkSuperAdmin = (req, res, next) => {
+  // First run standard auth to get user info
+  auth(req, res, () => {
+    if (req.user.role === 'super_admin') {
+      next(); // Pass!
+    } else {
+      res.status(403).json({ msg: 'Access Denied: Super Admins only' });
+    }
+  });
+};
+
+module.exports = { auth, checkSuperAdmin };
 
