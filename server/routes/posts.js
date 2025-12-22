@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Post = require('../models/Post');
+const User = require('../models/User'); // Import User for safety
 const { auth } = require('../middleware/auth');
 const multer = require('multer');
 const cloudinary = require('cloudinary').v2;
@@ -12,18 +13,17 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
-// 2. Use RAM Storage (Since we proved this works!)
+// 2. Use RAM Storage
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
 // @route   GET /api/posts/feed
 // @desc    Get all posts sorted by newest
-// @access  Public
 router.get('/feed', async (req, res) => {
   try {
     const posts = await Post.find()
-      .sort({ createdAt: -1 }) // Newest first
-      .populate('clubId', 'name logoUrl'); // Get Club Name & Logo too
+      .sort({ createdAt: -1 })
+      .populate('user', 'name logoUrl'); // <--- CHANGED: populating 'user'
     res.json(posts);
   } catch (err) {
     console.error(err.message);
@@ -33,7 +33,6 @@ router.get('/feed', async (req, res) => {
 
 // @route   POST /api/posts/create
 // @desc    Upload media and create a post
-// @access  Private (Admins Only)
 router.post('/create', auth, upload.single('file'), async (req, res) => {
     console.log("🔥 STEP 1: File received in RAM.");
 
@@ -43,13 +42,12 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
 
     try {
         // 3. The "Manual" Upload Stream
-        // This takes the buffer from RAM and pipes it to Cloudinary
         const uploadToCloudinary = () => {
             return new Promise((resolve, reject) => {
                 const stream = cloudinary.uploader.upload_stream(
                     {
                         folder: "college_clubs",
-                        resource_type: "auto", // Auto-detect Image/Video/PDF
+                        resource_type: "auto", 
                     },
                     (error, result) => {
                         if (result) {
@@ -61,12 +59,10 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
                         }
                     }
                 );
-                // Push the file data into the stream
                 stream.end(req.file.buffer);
             });
         };
 
-        // Wait for Cloudinary to finish
         const cloudResult = await uploadToCloudinary();
 
         // 4. Save to Database
@@ -75,8 +71,8 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
         if (req.file.mimetype === 'application/pdf') mediaType = 'raw';
 
         const newPost = new Post({
-            clubId: req.user.clubId,
-            mediaUrl: cloudResult.secure_url, // URL from Cloudinary
+            user: req.user.id, // <--- CHANGED: Saving as 'user', using req.user.id
+            mediaUrl: cloudResult.secure_url,
             mediaType: mediaType,
             caption: req.body.caption
         });
@@ -95,8 +91,8 @@ router.post('/create', auth, upload.single('file'), async (req, res) => {
 // @desc    Get only the logged-in club's posts
 router.get('/my-posts', auth, async (req, res) => {
   try {
-    // Find posts where the clubId matches the logged-in user
-    const posts = await Post.find({ clubId: req.user.clubId }).sort({ createdAt: -1 });
+    // <--- CHANGED: Querying 'user' field with req.user.id
+    const posts = await Post.find({ user: req.user.id }).sort({ createdAt: -1 });
     res.json(posts);
   } catch (err) {
     console.error(err.message);
@@ -114,37 +110,29 @@ router.delete('/:id', auth, async (req, res) => {
       return res.status(404).json({ msg: 'Post not found' });
     }
 
-    // POWER CHECK:
-    // Allow if User owns the post OR User is Super Admin
-    if (req.user.role !== 'super_admin' && post.clubId.toString() !== req.user.clubId) {
+    // <--- CHANGED: Checking 'post.user' vs 'req.user.id'
+    if (req.user.role !== 'super_admin' && post.user.toString() !== req.user.id) {
       return res.status(401).json({ msg: 'User not authorized' });
     }
 
-    // --- NEW: Cloudinary Cleanup Logic ---
+    // Cloudinary Cleanup (Kept your logic)
     if (post.mediaUrl) {
       try {
-        // 1. Extract Public ID from URL
-        // URL is like: .../upload/v1234/college_clubs/filename.png
         const urlParts = post.mediaUrl.split('/');
-        const fileWithExt = urlParts[urlParts.length - 1]; // filename.png
-        const publicId = `college_clubs/${fileWithExt.split('.')[0]}`; // college_clubs/filename
+        const fileWithExt = urlParts[urlParts.length - 1];
+        const publicId = `college_clubs/${fileWithExt.split('.')[0]}`; 
 
-        // 2. Determine Resource Type (image, video, or raw)
-        // Cloudinary needs to know if it's deleting a video or image
         let resourceType = 'image';
         if (post.mediaType === 'video') resourceType = 'video';
         if (post.mediaType === 'raw') resourceType = 'raw';
 
-        // 3. Destroy it
         await cloudinary.uploader.destroy(publicId, { resource_type: resourceType });
         console.log(`🗑️ Deleted from Cloudinary: ${publicId}`);
         
       } catch (cloudErr) {
         console.error("Cloudinary Delete Warning:", cloudErr);
-        // We continue executing so the DB record still gets deleted
       }
     }
-    // -------------------------------------
 
     await post.deleteOne();
     res.json({ msg: 'Post and media removed' });
@@ -155,13 +143,13 @@ router.delete('/:id', auth, async (req, res) => {
   }
 });
 
-// @route   GET /api/posts/club/:clubId
+// @route   GET /api/posts/club/:id
 // @desc    Get public posts for a specific club
-router.get('/club/:clubId', async (req, res) => {
+router.get('/club/:id', async (req, res) => { // <--- CHANGED param to :id
   try {
-    const posts = await Post.find({ clubId: req.params.clubId })
+    const posts = await Post.find({ user: req.params.id }) // <--- CHANGED to 'user'
       .sort({ createdAt: -1 })
-      .populate('clubId', 'name logoUrl');
+      .populate('user', 'name logoUrl'); // <--- CHANGED to 'user'
     res.json(posts);
   } catch (err) {
     console.error(err.message);
@@ -170,4 +158,3 @@ router.get('/club/:clubId', async (req, res) => {
 });
 
 module.exports = router;
-

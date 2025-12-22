@@ -16,10 +16,10 @@ app.use(cors({
 })); // Allows frontend requests
 
 // Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/posts', postRoutes);
-app.use('/api/applications', require('./routes/applications'));
+app.use('/api/auth', require('./routes/auth'));
+app.use('/api/posts', require('./routes/posts'));
 app.use('/api/events', require('./routes/events'));
+app.use('/api/applications', require('./routes/applications'));
 
 // Database Connection
 mongoose.connect(process.env.MONGO_URI)

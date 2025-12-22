@@ -1,9 +1,9 @@
 const mongoose = require('mongoose');
 
 const EventSchema = new mongoose.Schema({
-  clubId: {
+  user: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'Club',
+    ref: 'User',
     required: true
   },
   title: {
@@ -11,8 +11,7 @@ const EventSchema = new mongoose.Schema({
     required: true
   },
   description: {
-    type: String,
-    required: true
+    type: String
   },
   date: {
     type: Date,
@@ -21,9 +20,6 @@ const EventSchema = new mongoose.Schema({
   location: {
     type: String,
     required: true
-  },
-  imageUrl: {
-    type: String
   },
   createdAt: {
     type: Date,

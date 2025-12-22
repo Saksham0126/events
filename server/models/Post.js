@@ -1,28 +1,26 @@
 const mongoose = require('mongoose');
 
 const PostSchema = new mongoose.Schema({
-  clubId: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Club', 
-    required: true 
+  user: {  // <--- RENAMED from 'clubId' to 'user'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User', // Links to the User/Club model
+    required: true
   },
-  mediaUrl: { 
-    type: String, 
-    required: true 
-  }, // This will store the Cloudinary link
-  mediaType: { 
-    type: String, 
-    enum: ['image', 'video', 'document'], 
-    default: 'image' 
+  caption: {
+    type: String
   },
-  caption: { 
-    type: String 
+  mediaUrl: {
+    type: String,
+    required: true
   },
-  createdAt: { 
-    type: Date, 
-    default: Date.now 
+  mediaType: {
+    type: String, // 'image' or 'video'
+    default: 'image'
+  },
+  createdAt: {
+    type: Date,
+    default: Date.now
   }
 });
 
 module.exports = mongoose.model('Post', PostSchema);
-

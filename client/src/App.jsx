@@ -6,6 +6,7 @@ import Dashboard from './pages/Dashboard';
 import ClubsDirectory from './pages/ClubsDirectory';
 import ClubProfile from './pages/ClubProfile';
 import Events from './pages/Events';
+import ChangePassword from './pages/ChangePassword';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
           <Route path="/clubs" element={<ClubsDirectory />} />
           <Route path="/clubs/:id" element={<ClubProfile />} />
           <Route path="/events" element={<Events />} />
+          <Route path="/change-password" element={<ChangePassword />} />
         </Routes>
       </div>
     </Router>

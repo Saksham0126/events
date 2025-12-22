@@ -1,93 +1,111 @@
 import { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { useNavigate } from 'react-router-dom';
-import { motion } from 'framer-motion';
+import { FaUniversity } from 'react-icons/fa';
 
 const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
   const { email, password } = formData;
 
-  const onChange = (e) =>
+  const handleChange = (e) =>
     setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const onSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
+
     try {
-      const res = await axios.post('http://127.0.0.1:5000/api/auth/login', formData);
+      const res = await axios.post('http://localhost:5000/api/auth/login', formData);
       
-      // 1. Save the token securely
+      console.log('Login Response:', res.data); // Debugging
+
+      // 1. Save Token
       localStorage.setItem('token', res.data.token);
-      localStorage.setItem('userRole', res.data.user.role);
       
-      // 2. Redirect to Dashboard
-      navigate('/dashboard');
+      if (res.data.role) {
+        localStorage.setItem('userRole', res.data.role);
+      }
+
+      // 2. CHECK THE FLAG: Do they need to change password?
+      if (res.data.mustChangePassword) {
+        navigate('/change-password');
+      } else {
+        navigate('/dashboard');
+      }
       
     } catch (err) {
-      setError(err.response?.data?.msg || 'Login failed');
+      console.error('Login Error:', err);
+      setError(err.response?.data?.msg || 'Login failed. Please check your connection.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-zinc-950 px-4">
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
-        className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-2xl p-8 shadow-2xl"
-      >
-        <h2 className="text-3xl font-bold text-white text-center mb-2">Admin Access</h2>
-        <p className="text-zinc-500 text-center mb-8">Enter your credentials to manage your club.</p>
+    <div className="min-h-screen bg-black flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-zinc-900 border border-zinc-800 rounded-xl p-8 shadow-2xl">
         
+        <div className="text-center mb-8">
+          <div className="flex justify-center mb-4">
+            <FaUniversity className="text-4xl text-indigo-500" />
+          </div>
+          <h2 className="text-3xl font-bold text-white">Admin Access</h2>
+          <p className="text-zinc-400 mt-2">Enter your credentials to manage your club.</p>
+        </div>
+
         {error && (
-          <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 text-sm rounded-lg text-center">
+          <div className="bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-lg mb-6 text-center text-sm font-bold">
             {error}
           </div>
         )}
 
         <form onSubmit={onSubmit} className="space-y-6">
           <div>
-            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
-              Email Address
-            </label>
+            <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Email Address</label>
             <input
               type="email"
               name="email"
               value={email}
-              onChange={onChange}
-              className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 transition-colors"
-              placeholder="admin@college.edu"
+              onChange={handleChange}
               required
+              className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 transition-colors"
+              placeholder="name@college.edu"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
-              Password
-            </label>
+            <label className="block text-xs font-bold text-zinc-500 uppercase mb-2">Password</label>
             <input
               type="password"
               name="password"
               value={password}
-              onChange={onChange}
+              onChange={handleChange}
+              required
               className="w-full bg-zinc-950 border border-zinc-800 text-white rounded-lg px-4 py-3 focus:outline-none focus:border-indigo-500 transition-colors"
               placeholder="••••••••"
-              required
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all transform hover:scale-[1.02]"
+            disabled={loading}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            Sign In
+            {loading ? 'Signing In...' : 'Sign In'}
           </button>
         </form>
-      </motion.div>
+
+        <p className="mt-6 text-center text-zinc-500 text-sm">
+          Not an admin? <Link to="/" className="text-indigo-400 hover:underline">Return Home</Link>
+        </p>
+      </div>
     </div>
   );
 };
 
 export default Login;
-
