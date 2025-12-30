@@ -11,7 +11,11 @@ const app = express();
 // Middleware
 app.use(express.json()); // Allows server to read JSON data
 app.use(cors({
-  origin: ['http://localhost:5173', 'http://127.0.0.1:5173'], // Allow both localhost and 127.0.0.1
+  origin: [
+    'http://localhost:5173',                 // Keep this for local development
+    'http://127.0.0.1:5173',                 // Keep this for local development
+    'https://events-psi-puce.vercel.app'     // Add your Vercel URL here
+  ],
   credentials: true
 })); // Allows frontend requests
 
